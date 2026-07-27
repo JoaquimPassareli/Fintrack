@@ -7,13 +7,13 @@ export type Despesa = {
 };
 
 export const CATEGORIAS: Omit<Despesa, "value">[] = [
-  { name: "Moradia",      color: "#EF4444" },
-  { name: "Alimentação",  color: "#F97316" },
-  { name: "Transporte",   color: "#EAB308" },
-  { name: "Lazer",        color: "#3B82F6" },
-  { name: "Investimentos",color: "#8B5CF6" },
-  { name: "Fatura",       color: "#EC4899" },
-  { name: "Outros",       color: "#6B7280" },
+  { name: "Moradia",      color: "#ff1b1bff" },
+  { name: "Alimentação",  color: "#ff6a00ff" },
+  { name: "Transporte",   color: "#ffbf00ff" },
+  { name: "Lazer",        color: "#156efcff" },
+  { name: "Investimentos",color: "#763cffff" },
+  { name: "Fatura",       color: "#f7278fff" },
+  { name: "Outros",       color: "#00fff2ff" },
 ];
 
 const brl = (v: number) =>
@@ -76,7 +76,7 @@ export function FinancePieChart({ receita, despesas }: FinancePieChartProps) {
               outerRadius="32%"
               strokeWidth={0}
             >
-              <Cell fill="#22C55E" />
+              <Cell fill="#0beb5dff" />
             </Pie>
           )}
 
