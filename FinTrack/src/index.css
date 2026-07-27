@@ -127,4 +127,26 @@
   html {
     @apply font-sans;
     }
+
+  /* ── Custom scrollbar ── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.7 0.01 286 / 0.4);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.6 0.01 286 / 0.6);
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: oklch(0.4 0.01 286 / 0.5);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.55 0.01 286 / 0.7);
+  }
 }

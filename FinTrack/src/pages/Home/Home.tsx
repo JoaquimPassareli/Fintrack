@@ -12,6 +12,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowDownCircle,
   ArrowUpCircle,
+  CalendarRange,
+  ChevronLeft,
+  ChevronRight,
   LogOut,
   Plus,
   Trash2,
@@ -36,13 +39,14 @@ import { cn } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type TxType = "income" | "expense";
+type FilterMode = "month" | "custom";
 
 type Transaction = {
-  id: string;       // Firestore doc id
+  id: string;
   description: string;
   category: string;
-  date: string;     // dd/mm/yyyy — display only
-  dateRaw: string;  // yyyy-mm-dd — used for sorting
+  date: string;
+  dateRaw: string;
   amount: number;
   type: TxType;
 };
@@ -57,6 +61,11 @@ const INCOME_CATS  = ["Salário", "Freelance", "Rendimentos", "Outros"];
 const CAT_COLOR: Record<string, string> = Object.fromEntries(
   CATEGORIAS.map((c) => [c.name, c.color])
 );
+
+const MONTHS = [
+  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
+];
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 function NewTransactionModal({
@@ -283,6 +292,14 @@ export default function HomePage() {
   const [loading, setLoading]           = useState(true);
   const [firestoreOk, setFirestoreOk]   = useState(true);
 
+  // ── Filter state ──
+  const today = new Date();
+  const [filterMode, setFilterMode]     = useState<FilterMode>("month");
+  const [filterMonth, setFilterMonth]   = useState(today.getMonth());     // 0-11
+  const [filterYear, setFilterYear]     = useState(today.getFullYear());
+  const [customFrom, setCustomFrom]     = useState("");
+  const [customTo, setCustomTo]         = useState("");
+
   // 1) Track auth state
   useEffect(() => {
     const unsubAuth = auth.onAuthStateChanged((user) => {
@@ -375,23 +392,46 @@ export default function HomePage() {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
   }
 
+  // ── Filtered transactions ──
+  const filtered = transactions.filter((t) => {
+    if (filterMode === "month") {
+      // dateRaw is yyyy-mm-dd
+      const [y, m] = t.dateRaw.split("-").map(Number);
+      return y === filterYear && m - 1 === filterMonth;
+    }
+    // custom range
+    if (customFrom && t.dateRaw < customFrom) return false;
+    if (customTo   && t.dateRaw > customTo)   return false;
+    return true;
+  });
+
   // Derived totals
-  const totalReceitas = transactions
+  const totalReceitas = filtered
     .filter((t) => t.type === "income")
     .reduce((s, t) => s + t.amount, 0);
-  const totalDespesas = transactions
+  const totalDespesas = filtered
     .filter((t) => t.type === "expense")
     .reduce((s, t) => s + t.amount, 0);
   const saldo   = totalReceitas - totalDespesas;
-  const hasData = transactions.length > 0;
+  const hasData = filtered.length > 0;
 
   // Chart data — aggregate expenses by category
   const despesasChart: Despesa[] = CATEGORIAS.map((cat) => ({
     ...cat,
-    value: transactions
+    value: filtered
       .filter((t) => t.type === "expense" && t.category === cat.name)
       .reduce((s, t) => s + t.amount, 0),
   }));
+
+  // ── Month nav helpers ──
+  function prevMonth() {
+    if (filterMonth === 0) { setFilterMonth(11); setFilterYear((y) => y - 1); }
+    else setFilterMonth((m) => m - 1);
+  }
+  function nextMonth() {
+    if (filterMonth === 11) { setFilterMonth(0); setFilterYear((y) => y + 1); }
+    else setFilterMonth((m) => m + 1);
+  }
 
   return (
     <div className="min-h-svh bg-background">
@@ -416,18 +456,80 @@ export default function HomePage() {
 
       {/* ── Main ── */}
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">
-        {/* Title + CTA */}
-        <div className="flex items-center justify-between">
-          <div>
+        {/* Title + filter + CTA */}
+        <div className="space-y-3">
+          {/* Row 1: title + new button */}
+          <div className="flex items-center justify-between">
             <h1 className="font-heading text-2xl font-semibold">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
-            </p>
+            <Button size="sm" className="gap-1.5 shrink-0" onClick={() => setModalOpen(true)}>
+              <Plus className="size-4" />
+              Nova transação
+            </Button>
           </div>
-          <Button size="sm" className="gap-1.5" onClick={() => setModalOpen(true)}>
-            <Plus className="size-4" />
-            Nova transação
-          </Button>
+
+          {/* Row 2: period controls */}
+          <div className="flex flex-wrap items-center gap-2">
+            {filterMode === "month" ? (
+              <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 px-1 py-1">
+                <button
+                  onClick={prevMonth}
+                  className="rounded p-1 hover:bg-muted transition-colors"
+                  aria-label="Mês anterior"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+                <span className="min-w-[120px] text-center text-sm font-medium">
+                  {MONTHS[filterMonth]} {filterYear}
+                </span>
+                <button
+                  onClick={nextMonth}
+                  className="rounded p-1 hover:bg-muted transition-colors"
+                  aria-label="Próximo mês"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="h-8 w-36 text-xs"
+                />
+                <span className="text-xs text-muted-foreground">até</span>
+                <Input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="h-8 w-36 text-xs"
+                />
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                const next = filterMode === "month" ? "custom" : "month";
+                setFilterMode(next);
+                if (next === "custom") {
+                  const y = filterYear;
+                  const m = String(filterMonth + 1).padStart(2, "0");
+                  const lastDay = new Date(y, filterMonth + 1, 0).getDate();
+                  setCustomFrom(`${y}-${m}-01`);
+                  setCustomTo(`${y}-${m}-${String(lastDay).padStart(2, "0")}`);
+                }
+              }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                filterMode === "custom"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted"
+              )}
+            >
+              <CalendarRange className="size-3.5" />
+              {filterMode === "custom" ? "Voltar ao mês" : "Selecionar período"}
+            </button>
+          </div>
         </div>
 
         {/* Firestore warning */}
@@ -505,13 +607,13 @@ export default function HomePage() {
                 <CardHeader>
                   <CardTitle>Transações</CardTitle>
                   <CardDescription>
-                    {transactions.length === 0
-                      ? "Nenhuma transação ainda"
-                      : `${transactions.length} transaç${transactions.length === 1 ? "ão" : "ões"}`}
+                    {filtered.length === 0
+                      ? "Nenhuma transação no período"
+                      : `${filtered.length} transaç${filtered.length === 1 ? "ão" : "ões"}`}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {transactions.length === 0 ? (
+                  {filtered.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
                       <div className="flex size-12 items-center justify-center rounded-full bg-muted">
                         <Plus className="size-5 text-muted-foreground" />
@@ -519,61 +621,76 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-medium">Sem transações</p>
                         <p className="text-xs text-muted-foreground">
-                          Clique em "Nova transação" para começar.
+                          {transactions.length > 0
+                            ? "Nenhuma transação neste período."
+                            : "Clique em \"Nova transação\" para começar."}
                         </p>
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => setModalOpen(true)}>
-                        Adicionar agora
-                      </Button>
+                      {transactions.length === 0 && (
+                        <Button size="sm" variant="outline" onClick={() => setModalOpen(true)}>
+                          Adicionar agora
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-1 max-h-[420px] overflow-y-auto pr-1">
-                      {transactions.map((t) => (
+                      {filtered.map((t) => (
                         <div
                           key={t.id}
-                          className="group flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
+                          className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
                         >
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={cn(
-                                "flex size-8 shrink-0 items-center justify-center rounded-full",
-                                t.type === "income"
-                                  ? "bg-green-500/10 text-green-500"
-                                  : "bg-red-500/10 text-red-500"
-                              )}
-                            >
-                              {t.type === "income"
-                                ? <ArrowUpCircle className="size-4" />
-                                : <ArrowDownCircle className="size-4" />}
-                            </span>
-                            <div>
-                              <p className="text-sm font-medium leading-tight">{t.description}</p>
-                              <p className="text-xs text-muted-foreground">
-                                <span
-                                  className="inline-block size-2 rounded-full mr-1 align-middle"
-                                  style={{ background: CAT_COLOR[t.category] ?? "#6B7280" }}
-                                />
-                                {t.category} · {t.date}
+                          {/* Icon */}
+                          <span
+                            className={cn(
+                              "flex size-8 shrink-0 items-center justify-center rounded-full",
+                              t.type === "income"
+                                ? "bg-green-500/10 text-green-500"
+                                : "bg-red-500/10 text-red-500"
+                            )}
+                          >
+                            {t.type === "income"
+                              ? <ArrowUpCircle className="size-4" />
+                              : <ArrowDownCircle className="size-4" />}
+                          </span>
+
+                          {/* Center: description + value on top, category + date below */}
+                          <div className="min-w-0 flex-1">
+                            {/* Row 1: name + value */}
+                            <div className="flex items-baseline justify-between gap-2">
+                              <p className="truncate text-sm font-medium leading-tight">
+                                {t.description}
                               </p>
+                              <span
+                                className={cn(
+                                  "shrink-0 text-sm font-semibold tabular-nums",
+                                  t.type === "income" ? "text-green-500" : "text-red-500"
+                                )}
+                              >
+                                <span className="hidden sm:inline">
+                                  {t.type === "income" ? "+" : "-"}
+                                </span>
+                                {brl(t.amount)}
+                              </span>
                             </div>
+                            {/* Row 2: category dot + date */}
+                            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <span
+                                className="inline-block size-2 shrink-0 rounded-full"
+                                style={{ background: CAT_COLOR[t.category] ?? "#6B7280" }}
+                              />
+                              <span className="truncate">{t.category}</span>
+                              <span className="shrink-0">· {t.date}</span>
+                            </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={cn(
-                                "text-sm font-semibold tabular-nums",
-                                t.type === "income" ? "text-green-500" : "text-red-500"
-                              )}
-                            >
-                              {t.type === "income" ? "+" : "-"}{brl(t.amount)}
-                            </span>
-                            <button
-                              onClick={() => removeTransaction(t.id)}
-                              className="opacity-0 group-hover:opacity-100 rounded p-1 text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
-                              aria-label="Remover transação"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          </div>
+
+                          {/* Delete */}
+                          <button
+                            onClick={() => removeTransaction(t.id)}
+                            className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20"
+                            aria-label="Remover transação"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
                         </div>
                       ))}
                     </div>

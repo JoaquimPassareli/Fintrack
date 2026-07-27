@@ -12,6 +12,7 @@ export const CATEGORIAS: Omit<Despesa, "value">[] = [
   { name: "Transporte",   color: "#EAB308" },
   { name: "Lazer",        color: "#3B82F6" },
   { name: "Investimentos",color: "#8B5CF6" },
+  { name: "Fatura",       color: "#EC4899" },
   { name: "Outros",       color: "#6B7280" },
 ];
 
