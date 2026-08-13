@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { loginWithEmail, loginWithGoogle } from "@/lib/auth";
+import { loginWithEmail } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -42,24 +42,6 @@ export function LoginForm({
 				submitError instanceof Error
 					? submitError.message
 					: "Erro ao fazer login.",
-			);
-		} finally {
-			setLoading(false);
-		}
-	}
-
-	async function handleGoogleLogin() {
-		setError(null);
-		setLoading(true);
-
-		try {
-			await loginWithGoogle();
-			navigate("/dashboard");
-		} catch (submitError) {
-			setError(
-				submitError instanceof Error
-					? submitError.message
-					: "Erro ao fazer login com Google.",
 			);
 		} finally {
 			setLoading(false);
@@ -123,11 +105,15 @@ export function LoginForm({
 								<Button
 									variant="outline"
 									type="button"
-									disabled={loading}
-									onClick={handleGoogleLogin}
+									disabled={true}
+									title="Google Sign-In está em desenvolvimento para o app desktop"
+									className="cursor-not-allowed opacity-50"
 								>
-									Entrar com Google
+									Entrar com Google (Em desenvolvimento)
 								</Button>
+								<FieldDescription className="text-center text-xs text-muted-foreground">
+									Google Sign-In estará disponível em breve no app desktop
+								</FieldDescription>
 								<FieldDescription className="text-center">
 									Não tem uma conta?{" "}
 									<Link to="/registro" className="underline underline-offset-4">

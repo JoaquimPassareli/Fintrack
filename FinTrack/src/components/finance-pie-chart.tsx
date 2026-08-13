@@ -16,6 +16,12 @@ export const CATEGORIAS: Omit<Despesa, "value">[] = [
   { name: "Outros",       color: "#00fff2ff" },
 ];
 
+// Categoria especial para boletos (só aparece no gráfico, não no form)
+export const CATEGORIA_BOLETO: Omit<Despesa, "value"> = {
+  name: "Boleto",
+  color: "#18181b"
+};
+
 const brl = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
@@ -50,13 +56,21 @@ function EmptyChart() {
 interface FinancePieChartProps {
   receita: number;
   despesas: Despesa[];
+  isDarkMode?: boolean;
 }
 
-export function FinancePieChart({ receita, despesas }: FinancePieChartProps) {
-  const totalDespesas = despesas.reduce((acc, d) => acc + d.value, 0);
+export function FinancePieChart({ receita, despesas, isDarkMode }: FinancePieChartProps) {
+  // Ajustar cor do boleto baseado no tema
+  const despesasAdjustadas = despesas.map((d) =>
+    d.name === "Boleto"
+      ? { ...d, color: isDarkMode ? "rgb(0, 0, 0)" : "#18181b" } // Branco no dark, preto no light
+      : d
+  );
+
+  const totalDespesas = despesasAdjustadas.reduce((acc, d) => acc + d.value, 0);
   const saldo = receita - totalDespesas;
   const hasData = receita > 0 || totalDespesas > 0;
-  const despesasComValor = despesas.filter((d) => d.value > 0);
+  const despesasComValor = despesasAdjustadas.filter((d) => d.value > 0);
 
   if (!hasData) return <EmptyChart />;
 
@@ -76,7 +90,7 @@ export function FinancePieChart({ receita, despesas }: FinancePieChartProps) {
               outerRadius="32%"
               strokeWidth={0}
             >
-              <Cell fill="#0beb5dff" />
+              <Cell fill="rgb(0, 255, 94)" />
             </Pie>
           )}
 
@@ -89,8 +103,6 @@ export function FinancePieChart({ receita, despesas }: FinancePieChartProps) {
               cy="50%"
               innerRadius="40%"
               outerRadius="65%"
-              label={({ name }) => name}
-              labelLine
               strokeWidth={2}
             >
               {despesasComValor.map((item, index) => (

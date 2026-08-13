@@ -150,3 +150,14 @@
     background: oklch(0.55 0.01 286 / 0.7);
   }
 }
+
+/* ── Date input: ícone de calendário respeita o tema ── */
+input[type="date"],
+input[type="datetime-local"] {
+  color-scheme: light;
+}
+
+.dark input[type="date"],
+.dark input[type="datetime-local"] {
+  color-scheme: dark;
+}

@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permitir leitura de usuários para qualquer um autenticado
+    match /users/{userId} {
+      allow read, list;
+      allow write;
+
+      match /transactions/{transactionId} {
+        allow read, write, list;
+      }
+
+      match /boletos/{boletoId} {
+        allow read, write, list;
+      }
+
+      match /settings/{document=**} {
+        allow read, write, list;
+      }
+    }
+
+    match /admins/{document=**} {
+      allow read, write, list;
+    }
+
+    match /{document=**} {
+      allow read, write, list;
+    }
+  }
+}

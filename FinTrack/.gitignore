@@ -22,3 +22,23 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Firebase
+.firebase/
+.firebaserc
+
+# Tauri
+src-tauri/
+dev-dist/
+
+# Test scripts
+create-test-user.js
+
+# Temporary docs
+FIREBASE_SETUP.md
+GOOGLE_SIGNIN_STATUS.md
+
+# Parent directory files
+../package-lock.json
+../package.json
+../src-tauri/
